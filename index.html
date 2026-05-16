@@ -1175,7 +1175,7 @@ function _obNext(){
   obSlides[_obCur].classList.remove('active');obSlides[_obCur].classList.add('exit');
   var c=_obCur;setTimeout(function(){obSlides[c].classList.remove('exit');},400);
   _obCur++;
-  if(_obCur>=obSlides.length){obEl.classList.add('hidden');_obCur=0;return;}
+  if(_obCur>=obSlides.length){obEl.classList.add('hidden');obEl.style.display='none';_obCur=0;return;}
   obSlides[_obCur].classList.add('active');
   obDots.forEach(function(d,i){d.classList.toggle('active',i===_obCur);});
   obBtn.textContent=_obCur===obSlides.length-1?'Get Started':'Next';
@@ -2139,7 +2139,7 @@ function initSwipeHandler() {
 
   // Touch events — prevent ghost mouse events with a flag
   let lastTouchEnd = 0;
-  function modalOpen(){return document.querySelector('.modal-overlay.open,#test-screen.open,#results-screen.open')||!document.getElementById('onboarding').classList.contains('hidden');}
+  function modalOpen(){var ob=document.getElementById('onboarding');var obHidden=ob.classList.contains('hidden')||ob.style.display==='none';return document.querySelector('.modal-overlay.open,#test-screen.open,#results-screen.open')||!obHidden;}
   scene.addEventListener('touchstart', e=>{ if(modalOpen()) return; onStart(e.touches[0].clientX, e.touches[0].clientY, true); },{passive:true});
   scene.addEventListener('touchmove', e=>{
     onMove(e.touches[0].clientX, e.touches[0].clientY);
