@@ -2282,6 +2282,7 @@ window.doImport = function() {
   })});
   data.currentSection=data.sections.length-1; cardFilter='fresh'; currentCard=0;
   save(); _pendingImport=null;
+  sessionStorage.removeItem('mohanji_imported');
   document.getElementById('import-landing').classList.add('hidden');
   render();
 };
@@ -2313,7 +2314,14 @@ function checkImportURL() {
     var p = new URLSearchParams(window.location.search);
     var imp=p.get('import'), impz=p.get('importz');
     if(!imp && !impz) return;
-    // Clean URL IMMEDIATELY so refreshing doesn't re-trigger import
+    // Check if already imported this session
+    if(sessionStorage.getItem('mohanji_imported')) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+      return;
+    }
+    // Mark as imported for this session
+    sessionStorage.setItem('mohanji_imported', '1');
+    // Clean URL IMMEDIATELY
     window.history.replaceState({}, document.title, window.location.pathname);
     if(impz && window.DecompressionStream) {
       var bin=atob(impz), bytes=new Uint8Array(bin.length);
