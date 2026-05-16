@@ -2312,6 +2312,9 @@ function checkImportURL() {
   try {
     var p = new URLSearchParams(window.location.search);
     var imp=p.get('import'), impz=p.get('importz');
+    if(!imp && !impz) return;
+    // Clean URL IMMEDIATELY so refreshing doesn't re-trigger import
+    window.history.replaceState({}, document.title, window.location.pathname);
     if(impz && window.DecompressionStream) {
       var bin=atob(impz), bytes=new Uint8Array(bin.length);
       for(var i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
@@ -2322,14 +2325,12 @@ function checkImportURL() {
         if(pl.c&&Array.isArray(pl.c[0])) pl.c=pl.c.map(function(a){return {k:a[0],h:a[1],m:a[2]};});
         showImportLanding(pl);
       });
-      window.history.replaceState({},document.title,window.location.pathname);
       return;
     }
     if(!imp) return;
     var pl=JSON.parse(decodeURIComponent(escape(atob(imp))));
     if(pl.c&&Array.isArray(pl.c[0])) pl.c=pl.c.map(function(a){return {k:a[0],h:a[1],m:a[2]};});
     if(!pl.n||!pl.c) return;
-    window.history.replaceState({},document.title,window.location.pathname);
     showImportLanding(pl);
   } catch(e){ console.error('Import error:',e); }
 }
