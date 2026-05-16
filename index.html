@@ -809,6 +809,17 @@ header {
 .card-face.card-front.card-status-todo{background:#fff3cd!important;border-color:#f0b429!important;}
 .btn-share-sm{padding:4px 10px;border-radius:8px;border:1.5px solid var(--paper-dark);background:var(--paper);font-size:12px;cursor:pointer;color:var(--ink);}
 </style>
+<script>
+// Runs before body renders — hides onboarding if import link
+(function(){
+  try {
+    var p=new URLSearchParams(window.location.search);
+    if(p.get('import')||p.get('importz')){
+      document.write('<style>#onboarding{display:none!important}#app{display:none!important}#import-landing{display:block!important}</style>');
+    }
+  }catch(e){}
+})();
+</script>
 </head>
 <body>
 <canvas id="confetti-canvas"></canvas>
