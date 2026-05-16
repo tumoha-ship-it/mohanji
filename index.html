@@ -825,9 +825,9 @@ header {
 <canvas id="confetti-canvas"></canvas>
 
 <!-- ===== ONBOARDING ===== -->
-<div id="onboarding">
+<div id="onboarding" style="display:none;">
   <div class="ob-slides">
-    <div class="ob-slide active" data-slide="0">
+    <div class="ob-slide" data-slide="0">
       <div class="ob-emoji">文</div>
       <div class="ob-title">Welcome to Mohanji</div>
       <div class="ob-desc">Your personal Japanese kanji flashcard app. Study smarter, not harder.</div>
@@ -1194,12 +1194,14 @@ const obBtn = document.getElementById('ob-btn');
 const obEl = document.getElementById('onboarding');
 
 function showOnboarding(){
-  // Don't show intro if this is an import link
   try {
     var p = new URLSearchParams(window.location.search);
     if (p.get('import') || p.get('importz')) return;
   } catch(e){}
-  obEl.classList.remove('hidden');
+  obSlides[0].classList.add('active');
+  if(obDots[0]) obDots[0].classList.add('active');
+  obBtn.textContent = obSlides.length===1 ? 'Get Started' : 'Next';
+  obEl.style.display = 'flex';
 }
 var _obCur=0;
 function _obNext(){
@@ -2288,42 +2290,7 @@ function openLens(){
   }
 }
 
-// ONBOARDING - works on both iOS and Android
-var _obBtn=document.getElementById('ob-btn');
-var _obEl=document.getElementById('onboarding');
-var _obLast=0;
-function _obNext(){
-  var now=Date.now();if(now-_obLast<600)return;_obLast=now;
-  var slides=document.querySelectorAll('.ob-slide');
-  var dots=document.querySelectorAll('.ob-dot');
-  var cur=parseInt(_obEl.dataset.slide||'0');
-  slides[cur].classList.remove('active');slides[cur].classList.add('exit');
-  setTimeout(function(){slides[cur].classList.remove('exit');},400);
-  cur++;
-  if(cur>=slides.length){_obEl.classList.add('hidden');_obEl.dataset.slide='0';return;}
-  _obEl.dataset.slide=String(cur);
-  slides[cur].classList.add('active');
-  dots.forEach(function(d,i){d.classList.toggle('active',i===cur);});
-  _obBtn.textContent=cur===slides.length-1?'Get Started':'Next';
-}
-// click works on both iOS and Android
-_obBtn.addEventListener('click',function(e){e.stopPropagation();_obNext();},false);
-// touchend as backup for Android
-_obBtn.addEventListener('touchend',function(e){e.preventDefault();e.stopPropagation();_obNext();},{passive:false});
-
-// Block touches outside onboarding while it is visible
-function _obBlock(e){
-  if(_obEl.classList.contains('hidden')){
-    document.removeEventListener('touchstart',_obBlock,true);
-    document.removeEventListener('touchend',_obBlock,true);
-    return;
-  }
-  // Allow touches anywhere inside the onboarding div
-  if(_obEl.contains(e.target))return;
-  e.stopPropagation();
-}
-document.addEventListener('touchstart',_obBlock,true);
-document.addEventListener('touchend',_obBlock,true);
+// Onboarding handled above (showOnboarding + _obNext)
 
 
 // ── QR SHARE & IMPORT ──
