@@ -2425,6 +2425,36 @@ function downloadQR() {
   a.click();
 }
 
+function showImportLanding(payload) {
+  _pendingImport = payload;
+  document.getElementById('onboarding').style.display = 'none';
+  document.getElementById('app').style.display = 'none';
+  var landing = document.getElementById('import-landing');
+  landing.style.display = 'block';
+
+  document.getElementById('il-section-name').textContent = payload.n;
+  document.getElementById('il-card-count').textContent = payload.c.length + ' cards';
+
+  var preview = document.getElementById('il-preview');
+  var cards = payload.c.slice(0, 8);
+  preview.innerHTML = cards.map(function(c, i) {
+    var k=c.k||c[0]||''; var h=c.h||c[1]||''; var m=c.m||c[2]||'';
+    return '<div style="display:flex;align-items:center;padding:12px 16px;' +
+      (i < cards.length-1 ? 'border-bottom:1px solid #f0ebe3;' : '') + '">' +
+      '<span style="font-size:22px;font-family:\'Shippori Mincho\',serif;font-weight:700;color:#1a1814;min-width:52px;">' + k + '</span>' +
+      '<div style="flex:1;"><div style="font-size:12px;color:#8a7f6e;">' + h + '</div>' +
+      '<div style="font-size:13px;color:#1a1814;">' + m + '</div></div></div>';
+  }).join('') +
+  (payload.c.length > 8 ? '<div style="padding:12px 16px;font-size:12px;color:#b89968;text-align:center;">+' + (payload.c.length-8) + ' more cards</div>' : '');
+
+  document.getElementById('il-add-btn').onclick = confirmImport;
+  document.getElementById('il-what-link').onclick = function() {
+    landing.style.display = 'none';
+    document.getElementById('app').style.display = '';
+    showOnboarding();
+  };
+}
+
 function checkImportURL() {
   try {
     var params = new URLSearchParams(window.location.search);
@@ -2455,14 +2485,7 @@ function checkImportURL() {
     }
     if (!payload.n || !payload.c) return;
     showImportLanding(payload);
-    document.getElementById('import-section-name').textContent = payload.n;
-    document.getElementById('import-section-count').textContent = payload.c.length + ' cards';
-    var list = document.getElementById('import-preview-list');
-    list.innerHTML = payload.c.slice(0,10).map(function(c){
-      return '<div style="padding:4px 0;border-bottom:1px solid #ddd"><strong>' + (c.k||'') + '</strong> ' + (c.h||'') + ' - ' + (c.m||'') + '</div>';
-    }).join('') + (payload.c.length>10?'<div style="padding:4px 0;opacity:0.6">...and '+(payload.c.length-10)+' more</div>':'');
     window.history.replaceState({},document.title,window.location.pathname);
-    setTimeout(function(){openModal('import-modal');},600);
   } catch(e){ console.error('Import error:',e); }
 }
 
