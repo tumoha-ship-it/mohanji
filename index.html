@@ -2511,6 +2511,23 @@ window.downloadQR=downloadQR;
 window.confirmImport=confirmImport;
 
 // Check import URL immediately (before fonts load)
+// Wire import landing buttons after DOM is ready
+document.addEventListener('DOMContentLoaded', function(){
+  var addBtn = document.getElementById('il-add-btn');
+  var whatLink = document.getElementById('il-what-link');
+  if(addBtn) {
+    addBtn.addEventListener('click', function(e){ e.stopPropagation(); confirmImport(); });
+    addBtn.addEventListener('touchend', function(e){ e.preventDefault(); e.stopPropagation(); confirmImport(); }, {passive:false});
+  }
+  if(whatLink) {
+    whatLink.addEventListener('click', function(e){
+      e.stopPropagation();
+      document.getElementById('import-landing').style.display='none';
+      document.getElementById('app').style.display='';
+      showOnboarding();
+    });
+  }
+});
 checkImportURL();
 document.fonts.ready.then(()=>{ render(); });
 window.addEventListener('resize',()=>render());
