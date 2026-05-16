@@ -2423,9 +2423,7 @@ function checkImportURL() {
     var imp = params.get('import');
     var impz = params.get('importz');
 
-    var payload;
     if (impz && window.DecompressionStream) {
-      // Decompress
       var bin = atob(impz);
       var bytes = new Uint8Array(bin.length);
       for (var i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
@@ -2437,19 +2435,18 @@ function checkImportURL() {
         if (p.c && Array.isArray(p.c[0])) {
           p.c = p.c.map(function(a){return {k:a[0],h:a[1],m:a[2]};});
         }
-        showImportPreview(p);
+        showImportLanding(p);
       });
       window.history.replaceState({},document.title,window.location.pathname);
       return;
     }
     if (!imp) return;
-    payload = JSON.parse(decodeURIComponent(escape(atob(imp))));
-    // Handle array format
+    var payload = JSON.parse(decodeURIComponent(escape(atob(imp))));
     if (payload.c && Array.isArray(payload.c[0])) {
       payload.c = payload.c.map(function(a){return {k:a[0],h:a[1],m:a[2]};});
     }
     if (!payload.n || !payload.c) return;
-    showImportPreview(payload);
+    showImportLanding(payload);
     document.getElementById('import-section-name').textContent = payload.n;
     document.getElementById('import-section-count').textContent = payload.c.length + ' cards';
     var list = document.getElementById('import-preview-list');
@@ -2466,9 +2463,15 @@ function confirmImport() {
   var payload = _pendingImport;
   var name = payload.n;
   if (data.sections.find(function(s){return s.name===name;})) name = name + ' (imported)';
-  data.sections.push({name:name, cards:payload.c.map(function(c){return {kanji:c.k,hiragana:c.h,meaning:c.m};})});
+  data.sections.push({name:name, cards:payload.c.map(function(c){return {kanji:c.k||c[0],hiragana:c.h||c[1],meaning:c.m||c[2]};})});
   data.currentSection=data.sections.length-1; cardFilter='fresh'; currentCard=0;
-  save(); closeModal('import-modal'); render(); _pendingImport=null;
+  save(); _pendingImport=null;
+  // Hide landing, show app
+  var landing = document.getElementById('import-landing');
+  if (landing) landing.style.display='none';
+  document.getElementById('app').style.display='';
+  closeModal('import-modal');
+  render();
 }
 
 window.shareSection=shareSection;
@@ -2516,5 +2519,31 @@ render();
     </div>
   </div>
 </div>
+
+<!-- ===== IMPORT LANDING PAGE ===== -->
+<div id="import-landing" style="display:none;position:fixed;inset:0;background:#f5f1ea;z-index:9999;overflow-y:auto;">
+  <div style="max-width:380px;margin:0 auto;padding:48px 24px 40px;text-align:center;font-family:'Inter',sans-serif;">
+    <!-- Logo -->
+    <div style="font-size:48px;font-family:'Shippori Mincho',serif;color:#1a1814;margin-bottom:4px;">文</div>
+    <div style="font-size:13px;color:#b89968;letter-spacing:0.08em;font-weight:600;margin-bottom:32px;">MOHANJI</div>
+
+    <!-- Invite text -->
+    <div style="font-size:14px;color:#8a7f6e;margin-bottom:8px;">You've been invited to learn:</div>
+
+    <!-- Section name -->
+    <div id="il-section-name" style="font-size:28px;font-weight:700;font-family:'Shippori Mincho',serif;color:#1a1814;margin-bottom:6px;"></div>
+    <div id="il-card-count" style="font-size:14px;color:#b89968;margin-bottom:32px;"></div>
+
+    <!-- Card preview -->
+    <div id="il-preview" style="text-align:left;border:1.5px solid #e8e2d9;border-radius:16px;overflow:hidden;margin-bottom:28px;background:#fff;"></div>
+
+    <!-- Add button -->
+    <button id="il-add-btn" style="width:100%;padding:16px;background:#c1352b;color:#fff;border:none;border-radius:50px;font-size:16px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;margin-bottom:16px;">➕ Add to my App</button>
+
+    <!-- What is Mohanji -->
+    <div style="font-size:12px;color:#b89968;cursor:pointer;" id="il-what-link">What is Mohanji? →</div>
+  </div>
+</div>
+
 </body>
 </html>
