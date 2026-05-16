@@ -2289,17 +2289,75 @@ document.addEventListener('touchend',_obBlock,true);
 var _pendingImport = null;
 var _currentShareURL = '';
 
+function compressToBase64(str) {
+  // Simple LZ-based compression using built-in CompressionStream if available
+  // Fallback: just base64 encode
+  try {
+    // Use deflate-raw compression
+    var encoder = new TextEncoder();
+    var data2 = encoder.encode(str);
+    // Manual LZ77-style compression using repeated substring elimination
+    // For now use a simple approach: abbreviate common Japanese study words
+    var compressed = str
+      .replace(/"kanji"/g,'"k"').replace(/"hiragana"/g,'"h"').replace(/"meaning"/g,'"m"')
+      .replace(/"cards"/g,'"c"').replace(/"name"/g,'"n"').replace(/"sections"/g,'"s"');
+    return btoa(unescape(encodeURIComponent(compressed)));
+  } catch(e) {
+    return btoa(unescape(encodeURIComponent(str)));
+  }
+}
+
 function shareSection(si) {
   var sec = data.sections[si];
   if (!sec || !sec.cards.length) { alert('Section has no cards to share.'); return; }
-  var payload = JSON.stringify({n:sec.name, c:sec.cards.map(function(c){return {k:c.kanji,h:c.hiragana,m:c.meaning};})});
-  var b64 = btoa(unescape(encodeURIComponent(payload)));
+
+  // Compact payload - single letter keys
+  var payload = JSON.stringify({
+    n: sec.name,
+    c: sec.cards.map(function(c){ return [c.kanji, c.hiragana, c.meaning]; })
+  });
+
+  // Compress using CompressionStream if available (modern browsers)
   var base = location.origin && location.origin !== 'null' ? location.origin + location.pathname : 'https://mohanji.netlify.app/';
-  _currentShareURL = base + '?import=' + b64;
+
+  function buildURL(payload) {
+    var b64 = btoa(unescape(encodeURIComponent(payload)));
+    return base + '?import=' + b64;
+  }
+
+  if (window.CompressionStream) {
+    var blob = new Blob([payload]);
+    blob.arrayBuffer().then(function(buf) {
+      var cs = new CompressionStream('deflate-raw');
+      var writer = cs.writable.getWriter();
+      writer.write(new Uint8Array(buf));
+      writer.close();
+      new Response(cs.readable).arrayBuffer().then(function(compressed) {
+        var bytes = new Uint8Array(compressed);
+        var bin = Array.from(bytes).map(function(b){return String.fromCharCode(b);}).join('');
+        _currentShareURL = base + '?importz=' + btoa(bin);
+        showShareModal(sec, _currentShareURL);
+      });
+    });
+  } else {
+    _currentShareURL = buildURL(payload);
+    showShareModal(sec, _currentShareURL);
+  }
+}
+
+function showShareModal(sec, url) {
   document.getElementById('qr-section-name').textContent = sec.name;
-  document.getElementById('qr-section-count').textContent = sec.cards.length + ' cards';
-  document.getElementById('qr-title').textContent = 'Share: ' + sec.name;
   document.getElementById('btn-copy-link').textContent = 'Copy Link';
+
+  // Show card count + warning for large decks
+  var countEl = document.getElementById('qr-section-count');
+  var count = sec.cards.length;
+  if (count > 30) {
+    countEl.innerHTML = count + ' cards &nbsp;<span style="color:#c1352b;font-size:11px;">⚠️ works best for small decks</span>';
+  } else {
+    countEl.textContent = count + ' cards';
+  }
+  document.getElementById('qr-title').textContent = 'Share: ' + sec.name;
   openModal('qr-modal');
   var canvas = document.getElementById('qr-canvas');
   var ctx = canvas.getContext('2d');
@@ -2363,10 +2421,35 @@ function checkImportURL() {
   try {
     var params = new URLSearchParams(window.location.search);
     var imp = params.get('import');
+    var impz = params.get('importz');
+
+    var payload;
+    if (impz && window.DecompressionStream) {
+      // Decompress
+      var bin = atob(impz);
+      var bytes = new Uint8Array(bin.length);
+      for (var i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+      var ds = new DecompressionStream('deflate-raw');
+      var writer = ds.writable.getWriter();
+      writer.write(bytes); writer.close();
+      new Response(ds.readable).text().then(function(text) {
+        var p = JSON.parse(text);
+        if (p.c && Array.isArray(p.c[0])) {
+          p.c = p.c.map(function(a){return {k:a[0],h:a[1],m:a[2]};});
+        }
+        showImportPreview(p);
+      });
+      window.history.replaceState({},document.title,window.location.pathname);
+      return;
+    }
     if (!imp) return;
-    var payload = JSON.parse(decodeURIComponent(escape(atob(imp))));
+    payload = JSON.parse(decodeURIComponent(escape(atob(imp))));
+    // Handle array format
+    if (payload.c && Array.isArray(payload.c[0])) {
+      payload.c = payload.c.map(function(a){return {k:a[0],h:a[1],m:a[2]};});
+    }
     if (!payload.n || !payload.c) return;
-    _pendingImport = payload;
+    showImportPreview(payload);
     document.getElementById('import-section-name').textContent = payload.n;
     document.getElementById('import-section-count').textContent = payload.c.length + ' cards';
     var list = document.getElementById('import-preview-list');
@@ -2402,25 +2485,19 @@ render();
 </script>
 
 
-<!-- QR SHARE MODAL -->
+<!-- SHARE MODAL -->
 <div class="modal-overlay" id="qr-modal">
   <div class="modal-sheet" style="text-align:center;">
     <div class="modal-handle"></div>
     <div class="modal-title" id="qr-title">Share Section</div>
-    <div id="qr-section-name" style="font-size:18px;font-weight:700;font-family:'Shippoki Mincho',serif;color:var(--ink);margin-bottom:4px;"></div>
-    <div id="qr-section-count" style="font-size:13px;color:var(--ink-faint);margin-bottom:16px;"></div>
-    <div style="display:flex;justify-content:center;margin-bottom:16px;">
-      <canvas id="qr-canvas" width="220" height="220" style="border-radius:12px;border:2px solid var(--paper-dark);"></canvas>
-    </div>
-    <div style="font-size:11px;color:var(--ink-faint);margin-bottom:20px;line-height:1.6;">
-      Scan with any camera to preview and import this deck
+    <div id="qr-section-name" style="font-size:18px;font-weight:700;font-family:'Shippori Mincho',serif;color:var(--ink);margin-bottom:4px;"></div>
+    <div id="qr-section-count" style="font-size:13px;color:var(--ink-faint);margin-bottom:20px;"></div>
+    <div style="background:var(--paper-dark);border-radius:12px;padding:14px 16px;margin-bottom:24px;text-align:left;font-size:13px;color:var(--ink-light);line-height:1.7;">
+      Tap <strong>Copy Link</strong> &rarr; paste in WhatsApp or Line &rarr; your friend taps the link &rarr; imports the deck instantly ✅
     </div>
     <div style="display:flex;flex-direction:column;gap:8px;">
-      <button class="btn-save ripple-host" id="btn-copy-link" style="width:100%;font-size:14px;" onclick="copyShareLink()">Copy Link</button>
-      <div style="display:flex;gap:8px;">
-        <button class="btn-cancel" onclick="closeModal('qr-modal')" style="flex:1;">Close</button>
-        <button class="btn-save" onclick="downloadQR()" style="flex:1;">Save QR</button>
-      </div>
+      <button class="btn-save ripple-host" id="btn-copy-link" style="width:100%;font-size:15px;padding:14px;" onclick="copyShareLink()">📋 Copy Link</button>
+      <button class="btn-cancel" onclick="closeModal('qr-modal')" style="width:100%;">Close</button>
     </div>
   </div>
 </div>
