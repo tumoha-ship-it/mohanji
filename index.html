@@ -1081,7 +1081,30 @@ header {
   </div>
 </div>
 
-<script>
+<script>// ── EARLY IMPORT CHECK — runs before anything else ──
+// If URL has ?import or ?importz, hide onboarding immediately
+(function(){
+  try {
+    var p = new URLSearchParams(window.location.search);
+    if (p.get('import') || p.get('importz')) {
+      // Hide onboarding before it shows
+      var style = document.createElement('style');
+      style.textContent = '#onboarding { display:none !important; }';
+      document.head.appendChild(style);
+      // Show landing page immediately
+      document.addEventListener('DOMContentLoaded', function(){
+        var ob = document.getElementById('onboarding');
+        if (ob) ob.classList.add('hidden');
+        var landing = document.getElementById('import-landing');
+        if (landing) landing.style.display = 'block';
+        var app = document.getElementById('app');
+        if (app) app.style.display = 'none';
+      });
+    }
+  } catch(e){}
+})();
+
+
 // ===================== DATA =====================
 const STORAGE_KEY = 'fuda_v1';
 let data = { sections:[], currentSection:0, streak:{count:0,lastDate:''}, masteryMap:{}, settings:{dark:false,fontSize:'medium',haptic:true}, lastStudied:{} };
@@ -1159,7 +1182,14 @@ const obDots = document.querySelectorAll('.ob-dot');
 const obBtn = document.getElementById('ob-btn');
 const obEl = document.getElementById('onboarding');
 
-function showOnboarding(){ obEl.classList.remove('hidden'); }
+function showOnboarding(){
+  // Don't show intro if this is an import link
+  try {
+    var p = new URLSearchParams(window.location.search);
+    if (p.get('import') || p.get('importz')) return;
+  } catch(e){}
+  obEl.classList.remove('hidden');
+}
 var _obCur=0;
 function _obNext(){
   obSlides[_obCur].classList.remove('active'); obSlides[_obCur].classList.add('exit');
@@ -2479,7 +2509,9 @@ window.copyShareLink=copyShareLink;
 window.downloadQR=downloadQR;
 window.confirmImport=confirmImport;
 
-document.fonts.ready.then(()=>{ render(); checkImportURL(); });
+// Check import URL immediately (before fonts load)
+checkImportURL();
+document.fonts.ready.then(()=>{ render(); });
 window.addEventListener('resize',()=>render());
 initSwipeHandler();
 render();
