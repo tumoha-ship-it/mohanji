@@ -2314,15 +2314,21 @@ function checkImportURL() {
     var p = new URLSearchParams(window.location.search);
     var imp=p.get('import'), impz=p.get('importz');
     if(!imp && !impz) return;
-    // Check if already imported this session
-    if(sessionStorage.getItem('mohanji_imported')) {
-      window.history.replaceState({}, document.title, window.location.pathname);
+    // Store import data in sessionStorage BEFORE cleaning URL
+    // so we can survive a redirect
+    var stored = sessionStorage.getItem('mohanji_import_payload');
+    if(!stored && (imp||impz)) {
+      // Save raw params to sessionStorage
+      sessionStorage.setItem('mohanji_import_payload', JSON.stringify({imp:imp,impz:impz}));
+      // Hard redirect to clean URL - removes ?import from address bar permanently
+      window.location.replace(window.location.pathname);
       return;
     }
-    // Mark as imported for this session
-    sessionStorage.setItem('mohanji_imported', '1');
-    // Clean URL IMMEDIATELY
-    window.history.replaceState({}, document.title, window.location.pathname);
+    if(!stored) return;
+    // We have stored payload from sessionStorage (after redirect)
+    sessionStorage.removeItem('mohanji_import_payload');
+    var saved = JSON.parse(stored);
+    imp = saved.imp; impz = saved.impz;
     if(impz && window.DecompressionStream) {
       var bin=atob(impz), bytes=new Uint8Array(bin.length);
       for(var i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
