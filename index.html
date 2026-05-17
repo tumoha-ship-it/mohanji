@@ -481,7 +481,7 @@ header {
   overflow:hidden; max-height:0;
   transition:max-height 0.35s cubic-bezier(0.4,0,0.2,1);
 }
-.accordion-body.open { max-height:2000px; }
+.accordion-body.open { max-height:320px; overflow-y:auto; }
 
 .manage-section-row {
   display:flex; align-items:center; justify-content:space-between;
@@ -805,7 +805,6 @@ header {
 
 .card-status.badge-know{background:rgba(45,106,79,0.15);color:#1a1814!important;}
 .card-status.badge-todo{background:rgba(161,98,7,0.15);color:#1a1814!important;}
-.subtab.active-due{background:#7c3aed;color:#fff;border-color:#7c3aed;}
 .btn-jlpt{padding:10px 4px;border-radius:10px;border:1.5px solid var(--paper-dark);background:var(--paper);font-size:14px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;color:var(--ink);text-align:center;line-height:1.3;}
 .btn-jlpt span{font-size:10px;color:var(--ink-faint);font-weight:400;}
 .btn-jlpt:active{background:var(--red);color:#fff;border-color:var(--red);}
@@ -818,6 +817,10 @@ header {
 
 #upgrade-screen { display:none; }
 #upgrade-screen.open { display:flex; }
+[data-theme="dark"] .card-front,[data-theme="dark"] .card-back{background:#f5f1ea!important;border-color:#e0d8cc!important;}
+[data-theme="dark"] .kanji{color:#1a1814!important;}
+[data-theme="dark"] .hiragana{color:#5a5248!important;}
+[data-theme="dark"] .meaning{color:#1a1814!important;}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
 </head>
@@ -882,7 +885,6 @@ header {
 
   <!-- SECTION SUBTABS -->
   <div id="section-subtabs">
-    <button class="subtab" data-filter="due" id="subtab-due">📅 Due</button>
     <button class="subtab active-fresh" data-filter="fresh" id="subtab-fresh">📋 To-Do</button>
     <button class="subtab" data-filter="know"  id="subtab-know">✅ Learned</button>
     <button class="subtab" data-filter="todo"  id="subtab-todo">🔁 Learn Again</button>
@@ -1091,7 +1093,7 @@ header {
     <div class="confirm-msg" id="confirm-msg"></div>
     <div class="confirm-btns">
       <button class="btn-confirm-cancel" id="confirm-cancel">Cancel</button>
-      <button class="btn-confirm-ok" id="confirm-ok">Delete</button>
+      <button class="btn-confirm-ok" id="confirm-ok">OK</button>
     </div>
   </div>
 </div>
@@ -1384,23 +1386,16 @@ function rebuildShuffle() {
   const c = cards();
   shuffledOrder = c.map((_,i)=>i).sort(()=>Math.random()-0.5);
 }
-document.getElementById('btn-shuffle').onclick = () => {
+var _shuffleFiredAt = 0;
+function toggleShuffle() {
+  var now = Date.now(); if(now - _shuffleFiredAt < 400) return; _shuffleFiredAt = now;
   shuffleMode = !shuffleMode;
   if (shuffleMode) rebuildShuffle();
   currentCard = 0;
   document.getElementById('btn-shuffle').classList.toggle('active-mode', shuffleMode);
   render();
-};
+}
 
-// ===================== SWIPE & TAP =====================
-// (handled by initSwipeHandler below)
-
-// ===================== KEYBOARD =====================
-document.addEventListener('keydown', e=>{
-  if (e.key==='ArrowRight') { markCard('know'); goNextFiltered(); }
-  else if (e.key==='ArrowLeft') { markCard('todo'); goNextFiltered(); }
-  else if (e.key===' '||e.key==='Enter') { e.preventDefault(); flipCard(); }
-});
 
 // ===================== MODALS =====================
 function openModal(id) { document.getElementById(id).classList.add('open'); }
@@ -1528,7 +1523,7 @@ async function deleteCard() {
   const fc = currentFilteredList();
   if (!fc.length) return;
   const origIdx = fc[Math.min(currentCard, fc.length-1)].origIdx;
-  const ok = await showConfirm('Delete Card', `Delete "${c[origIdx].kanji}"?`);
+  const ok = await showConfirm('Delete Card', `Delete "${c[origIdx].kanji}"?`, 'Delete');
   if (!ok) return;
   const s = currentSectionData();
   const si = data.currentSection;
@@ -1562,6 +1557,7 @@ document.getElementById('section-modal-cancel').onclick = ()=>closeModal('sectio
 document.getElementById('section-modal-save').onclick = ()=>{
   const name = document.getElementById('input-section').value.trim();
   if (!name) return;
+  if(!canAddSection()){ closeModal('section-modal'); showUpgradeScreen('section'); return; }
   data.sections.push({name,cards:[]});
   data.currentSection = data.sections.length-1;
   currentCard=0; save(); closeModal('section-modal'); render();
@@ -1573,10 +1569,12 @@ document.getElementById('btn-settings').onclick = ()=>{
   // Fill plan info
   var row = document.getElementById('plan-info-row');
   if(isPremium()) {
-    row.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;">'
+    row.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'
       + '<div><div style="font-size:13px;font-weight:700;color:var(--ink);">✨ Mohanji Pro</div>'
       + '<div style="font-size:12px;color:var(--ink-faint);">Full access unlocked</div></div>'
-      + '<span style="font-size:20px;">🎉</span></div>';
+      + '<span style="font-size:20px;">🎉</span></div>'
+      + '<button onclick="localStorage.removeItem(\'mohanji_premium\');localStorage.removeItem(\'mohanji_import_count\');location.reload();" '
+      + 'style="font-size:11px;color:#8a7f6e;background:none;border:1px solid #ccc;border-radius:6px;padding:3px 8px;cursor:pointer;">Reset to Free (test)</button>';
   } else {
     row.innerHTML = '<div style="margin-bottom:12px;">'
       + '<div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:3px;">Free Plan</div>'
@@ -1588,7 +1586,12 @@ document.getElementById('btn-settings').onclick = ()=>{
       + '<button onclick="closeModal(\'settings-modal\');setTimeout(function(){showUpgradeScreen(\'upgrade\');},200);" '
       + 'style="width:100%;padding:12px;border-radius:10px;border:none;background:#c1352b;color:#fff;'
       + 'font-size:14px;font-weight:700;cursor:pointer;font-family:\'Inter\',sans-serif;">'
-      + '✨ Unlock Pro — $4.99 one-time</button>';
+      + '✨ Lifetime Access — $24.99</button>'
+      + '<div style="font-size:11px;color:#8a7f6e;margin:4px 0 8px;">One-time · No subscription</div>'
+      + '<button onclick="closeModal(\'settings-modal\');setTimeout(function(){showUpgradeScreen(\'upgrade\');},200);" '
+      + 'style="width:100%;padding:12px;border-radius:50px;border:2px solid #c1352b;background:var(--paper);color:#c1352b;font-size:14px;font-weight:700;cursor:pointer;font-family:\'Inter\',sans-serif;">'
+      + 'Monthly — $4.99/month</button>'
+      + '<div style="font-size:11px;color:#8a7f6e;margin-top:4px;">Cancel anytime</div>';
   }
   openModal('settings-modal');
 };
@@ -1604,19 +1607,22 @@ function renderManage() {
     <div style="background:var(--paper-dark);border-radius:14px;padding:14px 16px;margin-bottom:16px;">
       <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:6px;">🔀 Share decks with friends</div>
       <div style="font-size:12px;color:var(--ink-faint);line-height:1.7;margin-bottom:12px;">
-        <strong>Export</strong> a deck → send via WhatsApp or Line → friend taps <strong>Import</strong> → added instantly ✅
+        📥 <strong>Import:</strong> Receive a .json deck from a friend → tap Import → added instantly ✅<br>        📤 <strong>Export:</strong> Tap Share next to a section → send via WhatsApp or Line
       </div>
       <div style="display:flex;gap:8px;">
         <button id="btn-import-deck" style="flex:1;padding:12px 6px;border-radius:10px;border:none;background:#c1352b;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;">📥 Import</button>
-
+        <button id="btn-export-deck" style="flex:1;padding:12px 6px;border-radius:10px;border:none;background:#c1352b;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;">📤 Export</button>
       </div>
-      <input type="file" id="import-file-input" accept=".json,application/json" style="display:none;">
     </div>`;
 
   // Wire buttons BEFORE any early return so they work even with no sections
-  document.getElementById('btn-import-deck').onclick = function(){ document.getElementById('import-file-input').click(); };
-  document.getElementById('import-file-input').onchange = null;
-  document.getElementById('import-file-input').addEventListener('change', handleImportFile);
+  document.getElementById('btn-import-deck').onclick = function(){ var inp=document.getElementById('import-file-input'); inp.value=''; inp.click(); };
+  document.getElementById('btn-export-deck').onclick = function(){
+    if(!isPremium()){ showUpgradeScreen('export'); return; }
+    // If sections exist, let user pick via share button on each section
+    showConfirm('','Tap the 📤 Share button next to any section to export it.');
+  };
+
 
   if (!data.sections.length) {
     cont.innerHTML += '<div style="text-align:center;padding:24px;color:var(--ink-faint);font-size:14px;">No sections yet.<br><span style="font-size:12px;">Tap + to add your first section.</span></div>';
@@ -1640,25 +1646,14 @@ function renderManage() {
           <div class="accordion-section-meta">${s.cards.length} card${s.cards.length!==1?'s':''} · ${mastery}% mastery</div>
         </div>
       </div>
-      <div style="display:flex;gap:6px;flex-shrink:0;">
-        <button class="btn-share-sm" data-si="${si}" style="font-size:11px;padding:4px 8px;border-radius:8px;border:1.5px solid var(--paper-dark);background:var(--paper);cursor:pointer;color:var(--ink);">📤 Share</button>
-        <button class="btn-danger-sm" data-si="${si}">Delete</button>
-      </div>
+      <button class=\"btn-danger-sm\" data-si=\"${si}\" style=\"flex-shrink:0\">Delete</button>
     `;
 
-    // Share section
-
-    header.querySelector('.btn-share-sm').onclick = function(e){
-      e.stopPropagation();
-      if(!isPremium()){ showUpgradeScreen('export'); return; }
-      var si2 = parseInt(e.target.dataset.si);
-      exportSectionFile(si2);
-    };
     // Delete section
     header.querySelector('.btn-danger-sm').onclick = async e=>{
       e.stopPropagation();
       const si2=parseInt(e.target.dataset.si);
-      const ok=await showConfirm('Delete Section',`Delete "${data.sections[si2].name}" and all its cards?`);
+      const ok=await showConfirm('Delete Section',`Delete "${data.sections[si2].name}" and all its cards?`, 'Delete');
       if (!ok) return;
       manageExpanded.delete(si2);
       data.sections.splice(si2,1);
@@ -1669,6 +1664,7 @@ function renderManage() {
     // Toggle expand/collapse
     header.onclick = e=>{
       if (e.target.classList.contains('btn-danger-sm')) return;
+      if (e.target.classList.contains('btn-share-sm')) return;
       if (manageExpanded.has(si)) manageExpanded.delete(si);
       else manageExpanded.add(si);
       renderManage();
@@ -1677,7 +1673,6 @@ function renderManage() {
     // Body (collapsible card list)
     const body = document.createElement('div');
     body.className = 'accordion-body' + (isOpen?' open':'');
-    body.style.cssText = 'max-height:320px;overflow-y:auto;';
 
     if (s.cards.length === 0) {
       const empty = document.createElement('div');
@@ -1714,7 +1709,7 @@ function renderManage() {
       };
       item.querySelector('.del-btn').onclick = async e=>{
         const si2=parseInt(e.target.dataset.si),ci2=parseInt(e.target.dataset.ci);
-        const ok=await showConfirm('Delete Card',`Delete "${data.sections[si2].cards[ci2].kanji}"?`);
+        const ok=await showConfirm('Delete Card',`Delete "${data.sections[si2].cards[ci2].kanji}"?`, 'Delete');
         if (!ok) return;
         data.sections[si2].cards.splice(ci2,1); save(); renderManage(); render();
       };
@@ -1728,10 +1723,11 @@ function renderManage() {
 }
 
 // ===================== CONFIRM =====================
-function showConfirm(title, msg) {
+function showConfirm(title, msg, okLabel) {
   return new Promise(resolve=>{
     document.getElementById('confirm-title').textContent=title;
     document.getElementById('confirm-msg').textContent=msg;
+    document.getElementById('confirm-ok').textContent=okLabel||'OK';
     document.getElementById('confirm-modal').classList.add('open');
     const ok=document.getElementById('confirm-ok');
     const cancel=document.getElementById('confirm-cancel');
@@ -2203,7 +2199,7 @@ function initSwipeHandler() {
     onMove(e.touches[0].clientX, e.touches[0].clientY);
     if (tracking) e.preventDefault();
   },{passive:false});
-  scene.addEventListener('touchend', e=>{ lastTouchEnd=Date.now(); if(modalOpen()) return; onEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY); e.preventDefault(); },{passive:false});
+  scene.addEventListener('touchend', e=>{ lastTouchEnd=Date.now(); if(modalOpen()) return; onEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY); },{passive:true});
 
   // Mouse events — skip if a touch just happened (prevents double-fire)
   scene.addEventListener('mousedown', e=>{
@@ -2235,7 +2231,7 @@ function addJLPT(level){
   if(!isPremium()){ showUpgradeScreen('jlpt'); return; }
   var preset=JLPT_PRESETS[level]; if(!preset) return;
   var ex=data.sections.findIndex(function(s){return s.name==='JLPT '+level;});
-  if(ex>=0){showConfirm('Replace?','JLPT '+level+' already exists. Replace it?').then(function(ok){
+  if(ex>=0){showConfirm('Replace?','JLPT '+level+' already exists. Replace it?','Replace').then(function(ok){
     if(!ok)return;
     data.sections[ex].cards=preset.map(function(c){return {kanji:c.kanji,hiragana:c.hiragana,meaning:c.meaning};});
     data.currentSection=ex;cardFilter='fresh';currentCard=0;save();closeModal('section-modal');render();
@@ -2530,6 +2526,11 @@ function handleImportFile(e) {
     try {
       var pl=JSON.parse(ev.target.result);
       if(!pl.mohanji){alert('Invalid file.');return;}
+      // Check import limit for free users
+      if(!isPremium()){
+        var importCount = parseInt(localStorage.getItem('mohanji_import_count')||'0');
+        if(importCount >= 1){ showUpgradeScreen('import'); e.target.value=''; return; }
+      }
       var list=pl.sections&&Array.isArray(pl.sections)?pl.sections:(pl.name&&pl.cards?[{name:pl.name,cards:pl.cards}]:[]);
       if(!list.length){alert('No decks found.');return;}
       list.forEach(function(sec){
@@ -2587,11 +2588,13 @@ function hideUpgradeScreen() {
   document.getElementById('upgrade-screen').classList.remove('open');
 }
 
-function activatePremium() {
+function activatePremium(plan) {
   // Placeholder — real payment via Google Play later
   setPremium();
+  localStorage.setItem('mohanji_plan', plan||'lifetime');
   hideUpgradeScreen();
-  showConfirm('', '🎉 Full access unlocked! Enjoy Mohanji Pro.');
+  var msg = plan==='monthly' ? '🎉 Monthly plan activated! Enjoy Mohanji Pro.' : '🎉 Lifetime access unlocked! Enjoy Mohanji Pro.';
+  showConfirm('', msg);
   render();
 }
 window.showUpgradeScreen = showUpgradeScreen;
@@ -2613,7 +2616,9 @@ function exportSectionFile(si) {
   document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
-document.fonts.ready.then(()=>{ render(); setTimeout(initCatAnim,400); });
+// Wire import file input once
+document.getElementById('import-file-input').addEventListener('change', handleImportFile);
+document.fonts.ready.then(()=>{ render(); setTimeout(initCatAnim,400); setTimeout(function(){ var fi=document.getElementById('import-file-input'); if(fi) fi.addEventListener('change', handleImportFile); },100); });
 window.addEventListener('resize',()=>render());
 initSwipeHandler();
 render();
@@ -2680,12 +2685,17 @@ render();
       </div>
     </div>
 
-    <button onclick="activatePremium()" style="width:100%;padding:16px;background:#c1352b;color:#fff;border:none;border-radius:50px;font-size:17px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;margin-bottom:12px;">
-      Unlock Full Access — $4.99
+    <button onclick="activatePremium('lifetime')" style="width:100%;padding:16px;background:#c1352b;color:#fff;border:none;border-radius:50px;font-size:17px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;margin-bottom:8px;">
+      ✨ Lifetime Access — $24.99
     </button>
-    <div style="font-size:11px;color:#8a7f6e;margin-bottom:20px;">One-time purchase · No subscription · Yours forever</div>
+    <div style="font-size:11px;color:#8a7f6e;margin-bottom:12px;">One-time · No subscription · Yours forever</div>
+    <button onclick="activatePremium('monthly')" style="width:100%;padding:14px;background:var(--paper);color:#c1352b;border:2px solid #c1352b;border-radius:50px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;margin-bottom:8px;">
+      Monthly — $4.99 / month
+    </button>
+    <div style="font-size:11px;color:#8a7f6e;margin-bottom:20px;">Cancel anytime</div>
     <button onclick="hideUpgradeScreen()" style="background:none;border:none;font-size:13px;color:#b89968;cursor:pointer;font-family:'Inter',sans-serif;">Maybe later</button>
   </div>
 </div>
+<input type="file" id="import-file-input" accept=".json,application/json" style="display:none;">
 </body>
 </html>
