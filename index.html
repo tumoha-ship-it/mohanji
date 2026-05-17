@@ -2405,28 +2405,58 @@ window.confirmImport = confirmImport;
 
 
 function shareNativeDeck() {
-  var si = _currentShareSi !== undefined ? _currentShareSi : -1;
-  // fallback: get si from title
+  var si = _currentShareSi >= 0 ? _currentShareSi : -1;
   var sec = si >= 0 ? data.sections[si] : null;
   if (!sec) {
-    // try to find from title
     var title = document.getElementById('qr-title').textContent.replace('Share: ','');
     sec = data.sections.find(function(s){ return s.name === title; });
   }
   if (!sec) return;
-  var payload = JSON.stringify({mohanji:true, name:sec.name, cards:sec.cards.map(function(c){return {kanji:c.kanji,hiragana:c.hiragana,meaning:c.meaning};})},null,2);
-  var blob = new Blob([payload],{type:'application/json'});
-  var file = new File([blob], sec.name.replace(/[^a-zA-Z0-9぀-鿿]/g,'-')+'-mohanji.json',{type:'application/json'});
-  if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})) {
-    navigator.share({files:[file], title:'Mohanji Deck: '+sec.name});
-  } else {
-    // fallback: download
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href=url; a.download=file.name;
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a); URL.revokeObjectURL(url);
+
+  var payload = JSON.stringify({
+    mohanji:true, name:sec.name,
+    cards:sec.cards.map(function(c){ return {kanji:c.kanji,hiragana:c.hiragana,meaning:c.meaning}; })
+  }, null, 2);
+
+  var fileName = sec.name.replace(/[^a-zA-Z0-9\u3040-\u9fff]/g,'-') + '-mohanji.json';
+  var blob = new Blob([payload], {type:'application/json'});
+
+  // Try 1: Web Share API with file (Android Chrome 75+, Safari iOS 15+)
+  if (navigator.share && navigator.canShare) {
+    var file = new File([blob], fileName, {type:'application/json'});
+    if (navigator.canShare({files:[file]})) {
+      navigator.share({
+        files: [file],
+        title: 'Mohanji Deck: ' + sec.name,
+        text: 'Here is my Mohanji deck: ' + sec.name
+      }).catch(function(e){ if(e.name!=='AbortError') doDownload(blob, fileName); });
+      return;
+    }
   }
+
+  // Try 2: Share API without file — download first then share instruction
+  if (navigator.share) {
+    doDownload(blob, fileName);
+    setTimeout(function(){
+      navigator.share({
+        title: 'Mohanji Deck: ' + sec.name,
+        text: 'Open Mohanji → ☰ Menu → Import Deck → pick the file I sent you.'
+      }).catch(function(){});
+    }, 800);
+    return;
+  }
+
+  // Fallback: just download
+  doDownload(blob, fileName);
+}
+
+function doDownload(blob, fileName) {
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = fileName;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
 }
 window.shareNativeDeck = shareNativeDeck;
 
