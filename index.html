@@ -2617,7 +2617,6 @@ function exportSectionFile(si) {
 }
 
 // Wire import file input once
-document.getElementById('import-file-input').addEventListener('change', handleImportFile);
 document.fonts.ready.then(()=>{ render(); setTimeout(initCatAnim,400); setTimeout(function(){ var fi=document.getElementById('import-file-input'); if(fi) fi.addEventListener('change', handleImportFile); },100); });
 window.addEventListener('resize',()=>render());
 initSwipeHandler();
