@@ -865,7 +865,7 @@ header {
       </div>
     </div>
     <div class="header-right">
-      <button class="btn-icon ripple-host" id="btn-shuffle" title="Shuffle">🔀</button>
+      <button class="btn-icon ripple-host" id="btn-shuffle" title="Shuffle" style="display:flex;flex-direction:column;align-items:center;gap:1px;">🔀<span style="font-size:8px;font-weight:600;letter-spacing:0.03em;color:var(--ink-faint);line-height:1;">Shuffle</span></button>
       <button class="btn-icon ripple-host" id="btn-settings" title="Settings">⚙️</button>
       <button class="btn-icon ripple-host" id="btn-manage" title="Manage">☰</button>
     </div>
@@ -1395,6 +1395,7 @@ function toggleShuffle() {
   document.getElementById('btn-shuffle').classList.toggle('active-mode', shuffleMode);
   render();
 }
+document.getElementById('btn-shuffle').addEventListener('click', toggleShuffle);
 
 
 // ===================== MODALS =====================
@@ -2034,7 +2035,20 @@ function renderSubtabs() {
 // ===================== SWIPE KNOW / TODO =====================
 // Override goNext/goPrev to use filteredCards
 function currentFilteredList() {
-  return filteredCards();
+  var list = filteredCards();
+  if (!shuffleMode || !shuffledOrder.length) return list;
+  // Apply shuffle order - map shuffledOrder indices to filtered list positions
+  var reordered = [];
+  var len = list.length;
+  // Build a shuffled version of the filtered list
+  var indices = list.map(function(_,i){ return i; }).sort(function(a,b){
+    // Use shuffledOrder to determine relative order
+    var ai = shuffledOrder.indexOf(list[a].origIdx);
+    var bi = shuffledOrder.indexOf(list[b].origIdx);
+    if(ai < 0) ai = 999; if(bi < 0) bi = 999;
+    return ai - bi;
+  });
+  return indices.map(function(i){ return list[i]; });
 }
 
 
