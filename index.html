@@ -2308,41 +2308,13 @@ var _pendingImport = null;
 function shareSection(si) {
   var sec = data.sections[si];
   if (!sec) return;
-
-  // Encode section as compact JSON → base64
-  var payload = JSON.stringify({ n: sec.name, c: sec.cards.map(function(c){ return {k:c.kanji,h:c.hiragana,m:c.meaning}; }) });
-  var b64 = btoa(unescape(encodeURIComponent(payload)));
-  // URL that will trigger import when opened
-  var url = (location.origin || 'https://mohanji.netlify.app') + location.pathname + '?import=' + b64;
-
-  // Show modal
   document.getElementById('qr-section-name').textContent = sec.name;
   document.getElementById('qr-section-count').textContent = sec.cards.length + ' cards';
   document.getElementById('qr-title').textContent = 'Share: ' + sec.name;
   _currentShareSi = si;
   openModal('qr-modal');
-
-  // Generate QR code using qrcode.js CDN
-  var canvas = document.getElementById('qr-canvas');
-  var ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0,0,220,220);
-  ctx.fillStyle = '#1a1814';
-  ctx.font = '13px Inter,sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('Loading QR...', 110, 115);
-
-  // Load QRCode library on demand
-  if (!window.QRCode) {
-    var script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
-    script.onload = function(){ generateQR(canvas, url); };
-    script.onerror = function(){ showQRFallback(canvas, url); };
-    document.head.appendChild(script);
-  } else {
-    generateQR(canvas, url);
-  }
 }
+
 
 function generateQR(canvas, url) {
   QRCode.toCanvas(canvas, url, {
