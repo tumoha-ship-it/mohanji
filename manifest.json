@@ -2,11 +2,23 @@
   "name": "Mohanji — Japanese Flashcards",
   "short_name": "Mohanji",
   "description": "Your personal Japanese kanji flashcard app",
-  "start_url": "/",
+  "id": "/mohanji/",
+  "start_url": "/mohanji/",
+  "scope": "/mohanji/",
   "display": "standalone",
   "background_color": "#f5f1ea",
   "theme_color": "#c1352b",
   "orientation": "portrait",
+  "categories": ["education", "productivity"],
+  "screenshots": [
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Mohanji Flashcards"
+    }
+  ],
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
