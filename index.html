@@ -1592,7 +1592,8 @@ document.getElementById('btn-settings').onclick = ()=>{
       + '<button onclick="closeModal(\'settings-modal\');setTimeout(function(){showUpgradeScreen(\'upgrade\');},200);" '
       + 'style="width:100%;padding:12px;border-radius:50px;border:2px solid #c1352b;background:var(--paper);color:#c1352b;font-size:14px;font-weight:700;cursor:pointer;font-family:\'Inter\',sans-serif;">'
       + 'Monthly — $4.99/month</button>'
-      + '<div style="font-size:11px;color:#8a7f6e;margin-top:4px;">Cancel anytime</div>';
+      + '<div style="font-size:11px;color:#8a7f6e;margin-top:4px;">Cancel anytime</div>'
+      + '<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:8px 10px;margin-top:10px;font-size:11px;color:#5d4037;line-height:1.6;">💾 Cards are saved on your device only. Use <strong>Export</strong> in ☰ to back up your decks.</div>';
   }
   openModal('settings-modal');
 };
@@ -1610,6 +1611,7 @@ function renderManage() {
       <div style="font-size:12px;color:var(--ink-faint);line-height:1.7;margin-bottom:12px;">
         📥 <strong>Import:</strong> Receive a .json deck from a friend → tap Import → added instantly ✅<br>        📤 <strong>Export:</strong> Tap Share next to a section → send via WhatsApp or Line<br>        <span style="font-size:11px;color:#b89968;font-style:italic;">⚠️ To import a deck, you must have at least one section created first.</span>
       </div>
+      <div id="import-tip" style="display:none;margin-bottom:8px;background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:7px 10px;font-size:11px;color:#5d4037;line-height:1.6;">📂 Tap <strong>My Files</strong> → Downloads to find your deck file</div>
       <div style="display:flex;gap:8px;">
         <button id="btn-import-deck" style="flex:1;padding:12px 6px;border-radius:10px;border:none;background:#c1352b;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;">📥 Import</button>
         <button id="btn-export-deck" style="flex:1;padding:12px 6px;border-radius:10px;border:none;background:#c1352b;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;">📤 Export</button>
@@ -1617,7 +1619,14 @@ function renderManage() {
     </div>`;
 
   // Wire buttons BEFORE any early return so they work even with no sections
-  document.getElementById('btn-import-deck').onclick = function(){ var inp=document.getElementById('import-file-input'); inp.value=''; inp.click(); };
+  document.getElementById('btn-import-deck').onclick = function(){
+  var tip = document.getElementById('import-tip');
+  if(tip) { tip.style.display='block'; tip.scrollIntoView({behavior:'smooth', block:'nearest'}); }
+  var inp=document.getElementById('import-file-input');
+  inp.removeAttribute('capture');
+  inp.value='';
+  setTimeout(function(){ inp.click(); }, 800);
+};
   document.getElementById('btn-export-deck').onclick = function(){
     if(!isPremium()){ showUpgradeScreen('export'); return; }
     // If sections exist, let user pick via share button on each section
@@ -2709,6 +2718,6 @@ render();
     <button onclick="hideUpgradeScreen()" style="background:none;border:none;font-size:13px;color:#b89968;cursor:pointer;font-family:'Inter',sans-serif;">Maybe later</button>
   </div>
 </div>
-<input type="file" id="import-file-input" accept=".json,application/json" style="display:none;">
+<input type="file" id="import-file-input" accept="application/json,text/plain,*/*" capture="" style="display:none;">
 </body>
 </html>
