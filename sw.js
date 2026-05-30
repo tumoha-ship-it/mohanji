@@ -1,4 +1,4 @@
-const CACHE = 'mohanji-v2';
+const CACHE = 'mohanji-v1';
 const ASSETS = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', e => {
