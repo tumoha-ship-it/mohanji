@@ -817,6 +817,10 @@ header {
 
 #upgrade-screen { display:none; }
 #upgrade-screen.open { display:flex; }
+[data-theme="dark"] .card-front,[data-theme="dark"] .card-back{background:#f5f1ea!important;border-color:#e0d8cc!important;}
+[data-theme="dark"] .kanji{color:#1a1814!important;}
+[data-theme="dark"] .hiragana{color:#5a5248!important;}
+[data-theme="dark"] .meaning{color:#1a1814!important;}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
 </head>
@@ -861,7 +865,7 @@ header {
       </div>
     </div>
     <div class="header-right">
-      <button class="btn-icon ripple-host" id="btn-shuffle" title="Shuffle">🔀</button>
+      <button class="btn-icon ripple-host" id="btn-shuffle" title="Shuffle" style="display:flex;flex-direction:column;align-items:center;gap:1px;">🔀<span style="font-size:8px;font-weight:600;letter-spacing:0.03em;color:var(--ink-faint);line-height:1;">Shuffle</span></button>
       <button class="btn-icon ripple-host" id="btn-settings" title="Settings">⚙️</button>
       <button class="btn-icon ripple-host" id="btn-manage" title="Manage">☰</button>
     </div>
@@ -1094,17 +1098,6 @@ header {
   </div>
 </div>
 
-<div class="modal-overlay" id="rename-modal">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <div class="modal-title">Rename Section</div>
-    <input id="rename-input" type="text" placeholder="Section name" style="width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid var(--paper-dark);background:var(--paper);font-size:16px;color:var(--ink);font-family:'Inter',sans-serif;margin-bottom:16px;outline:none;">
-    <div class="modal-actions">
-      <button class="btn-cancel" id="rename-cancel">Cancel</button>
-      <button class="btn-save ripple-host" id="rename-save">Save</button>
-    </div>
-  </div>
-</div>
 <script>
 // ===================== DATA =====================
 const STORAGE_KEY = 'fuda_v1';
@@ -1402,12 +1395,13 @@ function toggleShuffle() {
   document.getElementById('btn-shuffle').classList.toggle('active-mode', shuffleMode);
   render();
 }
+document.getElementById('btn-shuffle').addEventListener('click', toggleShuffle);
 
 
 // ===================== MODALS =====================
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-['card-modal','section-modal','manage-modal','settings-modal','rename-modal'].forEach(id=>{
+['card-modal','section-modal','manage-modal','settings-modal'].forEach(id=>{
   document.getElementById(id).addEventListener('click', e=>{ if(e.target===document.getElementById(id)) closeModal(id); });
 });
 
@@ -1576,10 +1570,12 @@ document.getElementById('btn-settings').onclick = ()=>{
   // Fill plan info
   var row = document.getElementById('plan-info-row');
   if(isPremium()) {
-    row.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;">'
+    row.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'
       + '<div><div style="font-size:13px;font-weight:700;color:var(--ink);">✨ Mohanji Pro</div>'
       + '<div style="font-size:12px;color:var(--ink-faint);">Full access unlocked</div></div>'
-      + '<span style="font-size:20px;">🎉</span></div>';
+      + '<span style="font-size:20px;">🎉</span></div>'
+      + '<button onclick="localStorage.removeItem(\'mohanji_premium\');localStorage.removeItem(\'mohanji_import_count\');location.reload();" '
+      + 'style="font-size:11px;color:#8a7f6e;background:none;border:1px solid #ccc;border-radius:6px;padding:3px 8px;cursor:pointer;">Reset to Free (test)</button>';
   } else {
     row.innerHTML = '<div style="margin-bottom:12px;">'
       + '<div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:3px;">Free Plan</div>'
@@ -1591,7 +1587,12 @@ document.getElementById('btn-settings').onclick = ()=>{
       + '<button onclick="closeModal(\'settings-modal\');setTimeout(function(){showUpgradeScreen(\'upgrade\');},200);" '
       + 'style="width:100%;padding:12px;border-radius:10px;border:none;background:#c1352b;color:#fff;'
       + 'font-size:14px;font-weight:700;cursor:pointer;font-family:\'Inter\',sans-serif;">'
-      + '✨ Unlock Pro — $4.99 one-time</button>';
+      + '✨ Lifetime Access — $24.99</button>'
+      + '<div style="font-size:11px;color:#8a7f6e;margin:4px 0 8px;">One-time · No subscription</div>'
+      + '<button onclick="closeModal(\'settings-modal\');setTimeout(function(){showUpgradeScreen(\'upgrade\');},200);" '
+      + 'style="width:100%;padding:12px;border-radius:50px;border:2px solid #c1352b;background:var(--paper);color:#c1352b;font-size:14px;font-weight:700;cursor:pointer;font-family:\'Inter\',sans-serif;">'
+      + 'Monthly — $4.99/month</button>'
+      + '<div style="font-size:11px;color:#8a7f6e;margin-top:4px;">Cancel anytime</div>';
   }
   openModal('settings-modal');
 };
@@ -1607,7 +1608,7 @@ function renderManage() {
     <div style="background:var(--paper-dark);border-radius:14px;padding:14px 16px;margin-bottom:16px;">
       <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:6px;">🔀 Share decks with friends</div>
       <div style="font-size:12px;color:var(--ink-faint);line-height:1.7;margin-bottom:12px;">
-        <strong>Export</strong> a deck → send via WhatsApp or Line → friend taps <strong>Import</strong> → added instantly ✅
+        📥 <strong>Import:</strong> Receive a .json deck from a friend → tap Import → added instantly ✅<br>        📤 <strong>Export:</strong> Tap Share next to a section → send via WhatsApp or Line
       </div>
       <div style="display:flex;gap:8px;">
         <button id="btn-import-deck" style="flex:1;padding:12px 6px;border-radius:10px;border:none;background:#c1352b;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;">📥 Import</button>
@@ -1646,22 +1647,9 @@ function renderManage() {
           <div class="accordion-section-meta">${s.cards.length} card${s.cards.length!==1?'s':''} · ${mastery}% mastery</div>
         </div>
       </div>
-      <div style="display:flex;gap:6px;flex-shrink:0;">
-        <button class="btn-edit-sec" data-si="${si}" style="font-size:11px;padding:4px 8px;border-radius:8px;border:1.5px solid var(--paper-dark);background:var(--paper);cursor:pointer;color:var(--ink);">✏️</button>
-        <button class="btn-danger-sm" data-si="${si}">Delete</button>
-      </div>
+      <button class=\"btn-danger-sm\" data-si=\"${si}\" style=\"flex-shrink:0\">Delete</button>
     `;
 
-    // Share section
-
-    header.querySelector('.btn-edit-sec').onclick = function(e){
-      e.stopPropagation();
-      var si2=parseInt(e.target.dataset.si);
-      document.getElementById('rename-input').value=data.sections[si2].name;
-      document.getElementById('rename-modal').dataset.si=si2;
-      openModal('rename-modal');
-      setTimeout(function(){document.getElementById('rename-input').focus();},300);
-    };
     // Delete section
     header.querySelector('.btn-danger-sm').onclick = async e=>{
       e.stopPropagation();
@@ -1677,7 +1665,7 @@ function renderManage() {
     // Toggle expand/collapse
     header.onclick = e=>{
       if (e.target.classList.contains('btn-danger-sm')) return;
-      if (e.target.classList.contains('btn-edit-sec')) return;
+      if (e.target.classList.contains('btn-share-sm')) return;
       if (manageExpanded.has(si)) manageExpanded.delete(si);
       else manageExpanded.add(si);
       renderManage();
@@ -1686,7 +1674,6 @@ function renderManage() {
     // Body (collapsible card list)
     const body = document.createElement('div');
     body.className = 'accordion-body' + (isOpen?' open':'');
-    body.style.cssText = 'max-height:320px;overflow-y:auto;';
 
     if (s.cards.length === 0) {
       const empty = document.createElement('div');
@@ -2048,7 +2035,20 @@ function renderSubtabs() {
 // ===================== SWIPE KNOW / TODO =====================
 // Override goNext/goPrev to use filteredCards
 function currentFilteredList() {
-  return filteredCards();
+  var list = filteredCards();
+  if (!shuffleMode || !shuffledOrder.length) return list;
+  // Apply shuffle order - map shuffledOrder indices to filtered list positions
+  var reordered = [];
+  var len = list.length;
+  // Build a shuffled version of the filtered list
+  var indices = list.map(function(_,i){ return i; }).sort(function(a,b){
+    // Use shuffledOrder to determine relative order
+    var ai = shuffledOrder.indexOf(list[a].origIdx);
+    var bi = shuffledOrder.indexOf(list[b].origIdx);
+    if(ai < 0) ai = 999; if(bi < 0) bi = 999;
+    return ai - bi;
+  });
+  return indices.map(function(i){ return list[i]; });
 }
 
 
@@ -2213,7 +2213,7 @@ function initSwipeHandler() {
     onMove(e.touches[0].clientX, e.touches[0].clientY);
     if (tracking) e.preventDefault();
   },{passive:false});
-  scene.addEventListener('touchend', e=>{ lastTouchEnd=Date.now(); if(modalOpen()) return; onEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY); e.preventDefault(); },{passive:false});
+  scene.addEventListener('touchend', e=>{ lastTouchEnd=Date.now(); if(modalOpen()) return; onEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY); },{passive:true});
 
   // Mouse events — skip if a touch just happened (prevents double-fire)
   scene.addEventListener('mousedown', e=>{
@@ -2631,17 +2631,7 @@ function exportSectionFile(si) {
 }
 
 // Wire import file input once
-document.getElementById('import-file-input').addEventListener('change', handleImportFile);
-document.fonts.ready.then(()=>{
-  render(); setTimeout(initCatAnim,400);
-  document.getElementById('rename-save').onclick=function(){
-    var si=parseInt(document.getElementById('rename-modal').dataset.si);
-    var name=document.getElementById('rename-input').value.trim();
-    if(!name) return;
-    if(data.sections[si]){ data.sections[si].name=name; save(); closeModal('rename-modal'); renderManage(); render(); }
-  };
-  document.getElementById('rename-cancel').onclick=function(){ closeModal('rename-modal'); };
-});
+document.fonts.ready.then(()=>{ render(); setTimeout(initCatAnim,400); setTimeout(function(){ var fi=document.getElementById('import-file-input'); if(fi) fi.addEventListener('change', handleImportFile); },100); });
 window.addEventListener('resize',()=>render());
 initSwipeHandler();
 render();
